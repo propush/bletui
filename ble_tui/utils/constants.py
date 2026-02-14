@@ -1,0 +1,4 @@
+SCAN_TIMEOUT_S = 10.0
+CONNECT_TIMEOUT_S = 15.0
+LOG_MAX = 200
+ERROR_LOG_PATH = "ble_tui_errors.log"

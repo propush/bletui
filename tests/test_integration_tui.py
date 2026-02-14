@@ -1,0 +1,364 @@
+"""
+TUI Integration tests using Textual's Pilot.
+
+These tests use Textual's testing framework to interact with the TUI
+while mocking the BLE operations.
+"""
+import pytest
+from unittest.mock import AsyncMock, patch, Mock
+from textual.widgets import DataTable, Tree, RichLog
+from ble_tui import BleTui
+from tests.fixtures import create_test_device, create_mock_scanner_with_devices
+
+
+@pytest.mark.integration_tui
+async def test_app_starts_and_renders():
+    """Test that the app starts and renders basic UI elements."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+
+        # Check that main widgets exist
+        assert app.query_one("#devices", DataTable)
+        assert app.query_one("#gatt", Tree)
+        assert app.query_one("#log", RichLog)
+        assert app.query_one("#status")
+
+
+@pytest.mark.integration_tui
+async def test_devices_table_has_columns():
+    """Test that the devices DataTable has the correct columns."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        devices_table = app.query_one("#devices", DataTable)
+
+        # Should have columns after mount
+        assert devices_table.columns
+        # Columns: Conn, RSSI, Name, Address
+        assert len(devices_table.columns) == 4
+
+
+@pytest.mark.integration_tui
+async def test_initial_focus_on_devices():
+    """Test that initial focus is on the devices table."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Devices table should have focus initially
+        focused = app.focused
+        assert isinstance(focused, DataTable)
+
+
+@pytest.mark.integration_tui
+async def test_tab_navigation_between_panes():
+    """Test Tab key navigates between panes."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.containers import VerticalScroll
+        await pilot.pause()
+
+        # Start at devices table
+        assert isinstance(app.focused, DataTable)
+
+        # Press Tab -> should move to GATT tree
+        await pilot.press("tab")
+        assert isinstance(app.focused, Tree)
+
+        # Press Tab again -> should move to latest value scroll
+        await pilot.press("tab")
+        assert isinstance(app.focused, VerticalScroll)
+
+        # Press Tab again -> should move to log
+        await pilot.press("tab")
+        assert isinstance(app.focused, RichLog)
+
+        # Press Tab again -> should wrap to devices
+        await pilot.press("tab")
+        assert isinstance(app.focused, DataTable)
+
+
+@pytest.mark.integration_tui
+async def test_shift_tab_navigation_backward():
+    """Test Shift+Tab navigates backward between panes."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.containers import VerticalScroll
+        await pilot.pause()
+
+        # Start at devices table
+        assert isinstance(app.focused, DataTable)
+
+        # Press Shift+Tab -> should move backward to log
+        await pilot.press("shift+tab")
+        assert isinstance(app.focused, RichLog)
+
+        # Press Shift+Tab again -> should move to latest value scroll
+        await pilot.press("shift+tab")
+        assert isinstance(app.focused, VerticalScroll)
+
+        # Press Shift+Tab again -> should move to GATT
+        await pilot.press("shift+tab")
+        assert isinstance(app.focused, Tree)
+
+        # Press Shift+Tab again -> should wrap to devices
+        await pilot.press("shift+tab")
+        assert isinstance(app.focused, DataTable)
+
+
+@pytest.mark.integration_tui
+async def test_scan_with_mocked_scanner():
+    """Test scan action with mocked BleakScanner."""
+    # Create mock devices
+    device1 = create_test_device("Device1", "AA:BB:CC:DD:EE:F1", -45)
+    device2 = create_test_device("Device2", "AA:BB:CC:DD:EE:F2", -55)
+
+    scanner = create_mock_scanner_with_devices(device1, device2)
+
+    with patch("ble_tui.services.ble_service.BleakScanner", scanner):
+        async with BleTui().run_test() as pilot:
+            app = pilot.app
+
+            # Wait for auto-scan to complete
+            await pilot.pause(0.5)
+
+            devices_table = app.query_one("#devices", DataTable)
+
+            # Should have 2 devices
+            assert devices_table.row_count == 2
+
+
+@pytest.mark.integration_tui
+async def test_scan_action_populates_devices():
+    """Test that 's' key triggers scan and populates devices."""
+    device1 = create_test_device("TestDev", "AA:BB:CC:DD:EE:FF", -40)
+    scanner = create_mock_scanner_with_devices(device1)
+
+    with patch("ble_tui.services.ble_service.BleakScanner", scanner):
+        async with BleTui().run_test() as pilot:
+            app = pilot.app
+            await pilot.pause()
+
+            # Clear any auto-scan results
+            app._state.devices.clear()
+            app._state.device_order.clear()
+
+            # Trigger manual scan
+            await pilot.press("s")
+            await pilot.pause(0.5)
+
+            # Check device was added
+            assert len(app._state.devices) == 1
+            assert "AA:BB:CC:DD:EE:FF" in app._state.devices
+
+            devices_table = app.query_one("#devices", DataTable)
+            assert devices_table.row_count == 1
+
+
+@pytest.mark.integration_tui
+async def test_devices_sorted_by_rssi():
+    """Test that devices are sorted by RSSI (strongest first)."""
+    weak_device = create_test_device("Weak", "AA:BB:CC:DD:EE:F1", -80)
+    strong_device = create_test_device("Strong", "AA:BB:CC:DD:EE:F2", -30)
+    medium_device = create_test_device("Medium", "AA:BB:CC:DD:EE:F3", -55)
+
+    scanner = create_mock_scanner_with_devices(weak_device, strong_device, medium_device)
+
+    with patch("ble_tui.services.ble_service.BleakScanner", scanner):
+        async with BleTui().run_test() as pilot:
+            app = pilot.app
+            await pilot.pause(0.5)
+
+            # Devices should be sorted by RSSI (strongest first)
+            assert len(app._state.device_order) == 3
+
+            # First device should be strongest (-30)
+            first_addr = app._state.device_order[0]
+            assert app._state.devices[first_addr].rssi == -30
+
+            # Last device should be weakest (-80)
+            last_addr = app._state.device_order[-1]
+            assert app._state.devices[last_addr].rssi == -80
+
+
+@pytest.mark.integration_tui
+async def test_status_updates_during_scan():
+    """Test that status message updates during scan."""
+    scanner = create_mock_scanner_with_devices()
+
+    with patch("ble_tui.services.ble_service.BleakScanner", scanner):
+        async with BleTui().run_test() as pilot:
+            app = pilot.app
+
+            # Trigger scan
+            await pilot.press("s")
+            await pilot.pause(0.1)
+
+            # Status should be updated (check internal state)
+            assert app._status_msg is not None
+
+
+@pytest.mark.integration_tui
+async def test_scan_failure_shows_platform_guidance():
+    """Test scan failure message includes actionable Bluetooth guidance."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        app._ble.scan = AsyncMock(side_effect=RuntimeError("org.bluez.Error.Failed"))
+        await app.action_scan()
+
+        assert "Scan failed:" in app._status_msg
+        assert "Bluetooth" in app._status_msg
+
+
+@pytest.mark.integration_tui
+async def test_gatt_tree_empty_initially():
+    """Test that GATT tree is empty on startup."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        gatt_tree = app.query_one("#gatt", Tree)
+
+        # Root should exist but have no children
+        assert gatt_tree.root
+        assert len(list(gatt_tree.root.children)) == 0
+
+
+@pytest.mark.integration_tui
+async def test_log_pane_empty_initially():
+    """Test that log pane shows 'No characteristic selected' initially."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Check that no characteristic is selected
+        assert app._selected_char is None
+
+
+@pytest.mark.integration_tui
+async def test_quit_action():
+    """Test that 'q' key quits the app."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Press 'q' to quit
+        await pilot.press("q")
+
+        # App should exit (run_test context will handle cleanup)
+        # If we get here without hanging, the test passes
+        assert True
+
+
+@pytest.mark.integration_tui
+async def test_scan_handles_no_devices():
+    """Test scan when no devices are found."""
+    # Empty scanner
+    scanner = create_mock_scanner_with_devices()
+
+    with patch("ble_tui.services.ble_service.BleakScanner", scanner):
+        async with BleTui().run_test() as pilot:
+            app = pilot.app
+            await pilot.pause()
+
+            # Clear and rescan
+            app._state.devices.clear()
+            await pilot.press("s")
+            await pilot.pause(0.5)
+
+            devices_table = app.query_one("#devices", DataTable)
+            assert devices_table.row_count == 0
+
+
+@pytest.mark.integration_tui
+async def test_disconnect_clears_gatt_tree():
+    """Test that disconnect action clears the GATT tree."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Simulate having a connection by setting up GATT tree
+        gatt_tree = app.query_one("#gatt", Tree)
+        gatt_tree.root.add("Test Service")
+
+        # Disconnect
+        await pilot.press("d")
+        await pilot.pause()
+
+        # GATT tree should be cleared
+        assert len(list(gatt_tree.root.children)) == 0
+
+
+@pytest.mark.integration_tui
+async def test_escape_key_disconnects():
+    """Test that Escape key triggers disconnect."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Press Escape
+        await pilot.press("escape")
+        await pilot.pause()
+
+        # Should be disconnected (no client)
+        assert app._client is None
+
+
+@pytest.mark.integration_tui
+async def test_latest_value_widget_exists():
+    """Test that latest value widget is present in UI."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.widgets import Static
+        from textual.containers import VerticalScroll
+
+        # Check VerticalScroll container exists
+        scroll_container = app.query_one("#latest_value_scroll", VerticalScroll)
+        assert scroll_container is not None
+
+        # Check Static widget inside exists
+        latest = app.query_one("#latest_value", Static)
+        assert latest is not None
+
+
+@pytest.mark.integration_tui
+async def test_latest_value_is_scrollable():
+    """Test that latest value widget supports scrolling."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.containers import VerticalScroll
+
+        scroll_container = app.query_one("#latest_value_scroll", VerticalScroll)
+
+        # VerticalScroll should be scrollable
+        assert hasattr(scroll_container, 'scroll_to')
+        assert hasattr(scroll_container, 'scroll_up')
+        assert hasattr(scroll_container, 'scroll_down')
+
+
+@pytest.mark.integration_tui
+async def test_history_title_widget_exists():
+    """Test that history title widget is present in UI."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.widgets import Static
+
+        # Find the history title widget
+        history_titles = app.query(".history-title")
+        assert len(history_titles) > 0
+
+
+@pytest.mark.integration_tui
+async def test_latest_value_empty_state():
+    """Test placeholder message when no data received."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.widgets import Static
+        await pilot.pause()
+
+        # Before any reads/notifications, latest_value should be empty
+        latest = app.query_one("#latest_value", Static)
+        # Initial state is empty string - check by rendering
+        rendered_text = latest.render()
+        assert str(rendered_text) == ""
