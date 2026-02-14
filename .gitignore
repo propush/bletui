@@ -2,3 +2,4 @@
 __pycache__
 .env.test
 ble_tui_errors.log
+.pytest_cache

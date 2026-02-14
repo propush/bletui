@@ -2,6 +2,9 @@
 """Backward-compatible app entry point.
 
 Primary implementation now lives in `ble_tui` package.
+
+Copyright (c) 2026, pushkin
+Licensed under the BSD 3-Clause License. See LICENSE file for details.
 """
 
 from ble_tui import BleTui
