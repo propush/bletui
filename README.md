@@ -21,15 +21,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 
 ## Screenshots
 
-```
-┌─ BleTui ──────────────────────────────────────────────────────────┐
-│ Devices              │ GATT                    │ Values                │
-│ ─────────────────────│─────────────────────────│───────────────────────│
-│ ✓  -45  Device1      │ Service 1800...         │ 12:34:56.789 | 5B    │
-│    -55  Device2      │   Char 2a00... [read]   │ 48 65 6c 6c 6f       │
-│    -67  Device3      │   Char 2a01... [read,n] │ {"test": 123}        │
-└────────────────────────────────────────────────────────────────────────┘
-```
+![BleTui](images/bletui1.png)
 
 ## Quick Start
 
@@ -38,7 +30,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd test5_ble_scanner
+cd bletui
 
 # Run the app (automatically sets up venv and installs dependencies)
 ./run.sh
