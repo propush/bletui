@@ -1,8 +1,8 @@
 # BleTui
 
-A Python Terminal User Interface (TUI) application for scanning, connecting to, and interacting with Bluetooth Low Energy (BLE) devices on macOS.
+A Python Terminal User Interface (TUI) application for scanning, connecting to, and interacting with Bluetooth Low Energy (BLE) devices on macOS, Linux, and Windows.
 
-![Platform](https://img.shields.io/badge/platform-macOS-blue)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
 ![Tests](https://img.shields.io/badge/tests-65%20fast%20passed-green)
 ![Coverage](https://img.shields.io/badge/coverage-85%2B%25-green)
@@ -171,7 +171,7 @@ python3 ble_notify_probe.py
 
 - **UI Framework**: [Textual](https://textual.textualize.io/) - Modern TUI framework
 - **BLE Library**: [Bleak](https://github.com/hbldh/bleak) - Cross-platform BLE library
-- **Platform**: macOS (uses PyObjC bindings)
+- **Platform**: Cross-platform BLE backends via bleak (CoreBluetooth on macOS, BlueZ on Linux, WinRT on Windows)
 - **Python**: 3.13+
 
 ### Core Components
@@ -198,7 +198,7 @@ See [DESIGN.md](DESIGN.md) for detailed architecture documentation.
 
 ### Prerequisites
 
-- macOS (required for BLE access)
+- One of: macOS, Linux, or Windows with BLE support
 - Python 3.13+
 - Bluetooth enabled
 
@@ -276,13 +276,14 @@ See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
 
 ## Platform Notes
 
-- **macOS only**: Uses PyObjC bindings for BLE access
+- **macOS**: Uses CoreBluetooth via bleak/PyObjC
+- **Linux**: Uses BlueZ via bleak (ensure `bluetoothd`/D-Bus are available)
+- **Windows**: Uses WinRT BLE APIs via bleak
 - **Python 3.13**: Tested with Python 3.13
-- **Bluetooth**: Requires Bluetooth to be enabled in system preferences
+- **Bluetooth**: Requires Bluetooth to be enabled at the OS level
 
 ## Limitations
 
-- macOS only (no Linux/Windows support due to BLE library dependencies)
 - No BLE pairing/bonding support
 - Maximum 200 log entries per characteristic
 - 10-second scan timeout and 15-second connect timeout by default
@@ -290,7 +291,7 @@ See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
 ## Troubleshooting
 
 ### "No devices found"
-- Ensure Bluetooth is enabled in System Preferences
+- Ensure Bluetooth is enabled in your OS settings
 - Check that the BLE device is powered on and advertising
 - Try increasing scan timeout in code if needed
 

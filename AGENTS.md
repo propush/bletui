@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Python TUI (Terminal User Interface) application for scanning, connecting to, and interacting with BLE (Bluetooth Low Energy) devices on macOS. The app discovers GATT services and characteristics, supports reading and notification subscriptions, and displays values in both hex and JSON formats.
+A Python TUI (Terminal User Interface) application for scanning, connecting to, and interacting with BLE (Bluetooth Low Energy) devices on macOS, Linux, and Windows. The app discovers GATT services and characteristics, supports reading and notification subscriptions, and displays values in both hex and JSON formats.
 
 ## Running the Application
 
@@ -84,7 +84,7 @@ Errors are logged to `ble_tui_errors.log` with full tracebacks. The app uses non
 
 ## Platform Notes
 
-- **macOS only**: Uses PyObjC bindings for macOS BLE access via bleak
+- **Cross-platform BLE backends**: CoreBluetooth (macOS), BlueZ (Linux), and WinRT (Windows) via bleak
 - **Python 3.13**: Current venv uses Python 3.13
 
 ## Testing

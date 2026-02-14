@@ -67,7 +67,7 @@ def create_longbuddy_emu(
     of the LongBuddy-EMU device for E2E testing.
 
     Args:
-        address: BLE MAC address (default is typical macOS format)
+        address: BLE address string used by the current platform backend
         rssi: Signal strength
 
     Returns:

@@ -1,7 +1,7 @@
-# BLE TUI Design (LongBuddy-EMU compatible)
+# BLE TUI Design
 
 ## Understanding Summary
-- Build a Python TUI app for macOS to scan BLE devices and let the user choose one from a list sorted by signal strength (RSSI).
+- Build a Python TUI app for macOS, Linux, and Windows to scan BLE devices and let the user choose one from a list sorted by signal strength (RSSI).
 - The app discovers all services/characteristics (128-bit UUIDs) without prior UUID list.
 - User selects which characteristics to read and which to subscribe/notify.
 - Display characteristic values in hex and attempt UTF-8 JSON parsing when valid; otherwise hex only.
@@ -10,7 +10,7 @@
 
 ## Assumptions
 - JSON payloads are UTF-8 encoded and well-formed when present.
-- Python with `bleak` is acceptable on macOS.
+- Python with `bleak` is acceptable across macOS, Linux, and Windows.
 - No authentication/pairing requirements beyond standard BLE connect.
 
 ## Decision Log

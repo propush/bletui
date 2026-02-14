@@ -6,7 +6,7 @@ from bleak import BleakClient
 
 
 # Device address can be configured via environment variable
-# Default is for LongBuddy-EMU on macOS
+# Default is for LongBuddy-EMU
 ADDR = os.getenv("BLE_TEST_DEVICE_ADDRESS", "A4486977-7944-04D0-ACB9-25ABF3578B51")
 
 # Characteristic UUIDs can be configured via environment variable (comma-separated)
