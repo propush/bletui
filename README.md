@@ -29,7 +29,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone git@github.com:propush/bletui.git
 cd bletui
 
 # Run the app (automatically sets up venv and installs dependencies)
