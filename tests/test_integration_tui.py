@@ -4,11 +4,14 @@ TUI Integration tests using Textual's Pilot.
 These tests use Textual's testing framework to interact with the TUI
 while mocking the BLE operations.
 """
+
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, Mock
-from textual.widgets import DataTable, Tree, RichLog
+from textual.widgets import DataTable, RichLog, Tree
+
 from ble_tui import BleTui
-from tests.fixtures import create_test_device, create_mock_scanner_with_devices
+from tests.fixtures import create_mock_scanner_with_devices, create_test_device
 
 
 @pytest.mark.integration_tui
@@ -55,6 +58,7 @@ async def test_tab_navigation_between_panes():
     async with BleTui().run_test() as pilot:
         app = pilot.app
         from textual.containers import VerticalScroll
+
         await pilot.pause()
 
         # Start at devices table
@@ -83,6 +87,7 @@ async def test_shift_tab_navigation_backward():
     async with BleTui().run_test() as pilot:
         app = pilot.app
         from textual.containers import VerticalScroll
+
         await pilot.pause()
 
         # Start at devices table
@@ -161,7 +166,9 @@ async def test_devices_sorted_by_rssi():
     strong_device = create_test_device("Strong", "AA:BB:CC:DD:EE:F2", -30)
     medium_device = create_test_device("Medium", "AA:BB:CC:DD:EE:F3", -55)
 
-    scanner = create_mock_scanner_with_devices(weak_device, strong_device, medium_device)
+    scanner = create_mock_scanner_with_devices(
+        weak_device, strong_device, medium_device
+    )
 
     with patch("ble_tui.services.ble_service.BleakScanner", scanner):
         async with BleTui().run_test() as pilot:
@@ -202,8 +209,9 @@ async def test_scan_failure_shows_platform_guidance():
     """Test scan failure message includes actionable Bluetooth guidance."""
     async with BleTui().run_test() as pilot:
         app = pilot.app
-        await pilot.pause()
+        await pilot.pause(0.5)
 
+        app._scan_in_progress = False
         app._ble.scan = AsyncMock(side_effect=RuntimeError("org.bluez.Error.Failed"))
         await app.action_scan()
 
@@ -310,8 +318,8 @@ async def test_latest_value_widget_exists():
     """Test that latest value widget is present in UI."""
     async with BleTui().run_test() as pilot:
         app = pilot.app
-        from textual.widgets import Static
         from textual.containers import VerticalScroll
+        from textual.widgets import Static
 
         # Check VerticalScroll container exists
         scroll_container = app.query_one("#latest_value_scroll", VerticalScroll)
@@ -332,9 +340,9 @@ async def test_latest_value_is_scrollable():
         scroll_container = app.query_one("#latest_value_scroll", VerticalScroll)
 
         # VerticalScroll should be scrollable
-        assert hasattr(scroll_container, 'scroll_to')
-        assert hasattr(scroll_container, 'scroll_up')
-        assert hasattr(scroll_container, 'scroll_down')
+        assert hasattr(scroll_container, "scroll_to")
+        assert hasattr(scroll_container, "scroll_up")
+        assert hasattr(scroll_container, "scroll_down")
 
 
 @pytest.mark.integration_tui
@@ -355,6 +363,7 @@ async def test_latest_value_empty_state():
     async with BleTui().run_test() as pilot:
         app = pilot.app
         from textual.widgets import Static
+
         await pilot.pause()
 
         # Before any reads/notifications, latest_value should be empty

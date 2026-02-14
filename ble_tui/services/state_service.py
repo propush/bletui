@@ -31,7 +31,6 @@ class StateService:
         self.subscribed.clear()
         self.latest_data.clear()
         self.logs.clear()
-        self.selected_char = None
 
     def set_gatt(
         self,

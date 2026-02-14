@@ -14,7 +14,13 @@ from textual.widgets import DataTable, Footer, Header, RichLog, Static, Tree
 
 from ble_tui.models import CharacteristicInfo, DeviceInfo, LogEntry
 from ble_tui.services import BleService, StateService
-from ble_tui.ui.renderers import characteristic_label, log_line, log_meta, status_line
+from ble_tui.ui.renderers import (
+    characteristic_label,
+    latest_value_markup,
+    log_line,
+    log_meta,
+    status_line,
+)
 from ble_tui.ui.styles import APP_CSS
 from ble_tui.utils import ERROR_LOG_PATH, format_ble_error
 
@@ -104,6 +110,9 @@ class BleTui(App):
 
     def _restore_device_cursor(self, addr: Optional[str]) -> None:
         if not addr or addr not in self._state.device_order:
+            if self._state.device_order:
+                devices_table = self.query_one("#devices", DataTable)
+                devices_table.move_cursor(row=0, column=0)
             return
         row_index = self._state.device_order.index(addr)
         devices_table = self.query_one("#devices", DataTable)
@@ -118,10 +127,14 @@ class BleTui(App):
             if dev is None:
                 continue
             conn_label = "ON" if connected_addr == addr else ""
-            devices_table.add_row(conn_label, str(dev.rssi), dev.name, dev.address, key=dev.address)
+            devices_table.add_row(
+                conn_label, str(dev.rssi), dev.name, dev.address, key=dev.address
+            )
         self._restore_device_cursor(preserve_addr)
 
     async def action_scan(self) -> None:
+        if self._scan_in_progress:
+            return
         async with self._ble_lock:
             self._scan_in_progress = True
             self._render_status()
@@ -160,10 +173,15 @@ class BleTui(App):
             self._set_status(f"Connecting to {addr}...")
 
             def _on_disconnect(_: BleakClient) -> None:
-                self.call_from_thread(self._handle_disconnect)
+                try:
+                    self.call_from_thread(self._handle_disconnect)
+                except Exception:
+                    pass
 
             try:
-                self._client = await self._ble.connect(addr, disconnected_callback=_on_disconnect)
+                self._client = await self._ble.connect(
+                    addr, disconnected_callback=_on_disconnect
+                )
             except Exception as exc:
                 self._record_error("connect", exc)
                 self._set_status(format_ble_error("Connect", exc, ERROR_LOG_PATH))
@@ -183,8 +201,8 @@ class BleTui(App):
         if self._client and self._client.is_connected:
             try:
                 await self._ble.disconnect(self._client)
-            except Exception:
-                pass
+            except Exception as exc:
+                self._record_error("disconnect", exc)
         self._client = None
         self._state.clear_connection_state()
         self._selected_char = None
@@ -213,7 +231,12 @@ class BleTui(App):
             return
 
         try:
-            services_map, key_map, service_count, char_count = await self._ble.discover_gatt(self._client)
+            (
+                services_map,
+                key_map,
+                service_count,
+                char_count,
+            ) = await self._ble.discover_gatt(self._client)
         except Exception as exc:
             self._record_error("discover_gatt", exc)
             self._set_status(format_ble_error("Service discovery", exc, ERROR_LOG_PATH))
@@ -229,12 +252,17 @@ class BleTui(App):
         for svc_uuid, chars in self._state.services.items():
             svc_node = root.add(f"Service {svc_uuid}")
             for info in chars:
-                svc_node.add(characteristic_label(info, info.key in self._state.subscribed), data=info)
+                svc_node.add(
+                    characteristic_label(info, info.key in self._state.subscribed),
+                    data=info,
+                )
             svc_node.expand()
 
         gatt.root.expand()
         gatt.refresh()
-        self._set_status(f"GATT loaded: {service_count} service(s), {char_count} characteristic(s).")
+        self._set_status(
+            f"GATT loaded: {service_count} service(s), {char_count} characteristic(s)."
+        )
 
     def _char_target(self, info: CharacteristicInfo) -> str | int:
         return self._state.char_target(info)
@@ -283,7 +311,9 @@ class BleTui(App):
             info = self._sync_selected_char_from_tree()
             if info is None and self._selected_char:
                 info = self._state.find_char(self._selected_char)
-            if not info or ("notify" not in info.properties and "indicate" not in info.properties):
+            if not info or (
+                "notify" not in info.properties and "indicate" not in info.properties
+            ):
                 self._set_status("Selected characteristic is not notifiable.")
                 return
 
@@ -292,7 +322,9 @@ class BleTui(App):
                     await self._ble.stop_notify(self._client, self._char_target(info))
                 except Exception as exc:
                     self._record_error("stop_notify", exc)
-                    self._set_status(f"Stop notify failed (details in {ERROR_LOG_PATH})")
+                    self._set_status(
+                        f"Stop notify failed (details in {ERROR_LOG_PATH})"
+                    )
                     return
                 self._state.subscribed.remove(info.key)
                 self._set_status(f"Stopped notify {info.uuid}")
@@ -306,10 +338,14 @@ class BleTui(App):
                     self._dispatch_notify(key, bytes(data), info.uuid)
 
                 try:
-                    await self._ble.start_notify(self._client, self._char_target(info), _cb)
+                    await self._ble.start_notify(
+                        self._client, self._char_target(info), _cb
+                    )
                 except Exception as exc:
                     self._record_error("start_notify", exc)
-                    self._set_status(f"Start notify failed (details in {ERROR_LOG_PATH})")
+                    self._set_status(
+                        f"Start notify failed (details in {ERROR_LOG_PATH})"
+                    )
                     return
                 self._state.subscribed.add(info.key)
                 self._set_status(f"Subscribed {info.uuid}")
@@ -329,13 +365,11 @@ class BleTui(App):
         try:
             self.call_from_thread(self._append_value, key, data)
             self.call_from_thread(self._set_status, f"Notify {uuid} ({len(data)} B)")
-        except RuntimeError:
+        except Exception:
             self._append_value(key, data)
             self._set_status(f"Notify {uuid} ({len(data)} B)")
 
     def _render_log(self, key: str) -> None:
-        from ble_tui.ui.renderers import latest_value_markup
-
         log_view = self.query_one("#log", RichLog)
         log_view.clear()
 
@@ -351,7 +385,9 @@ class BleTui(App):
                 latest_value_markup(latest_entry, latest_data)
             )
         else:
-            self.query_one("#latest_value", Static).update("[dim]No data received yet[/]")
+            self.query_one("#latest_value", Static).update(
+                "[dim]No data received yet[/]"
+            )
 
         # Render history log
         for entry in logs:
@@ -373,7 +409,9 @@ class BleTui(App):
         for node in self._iter_tree_nodes(gatt.root):
             info = node.data
             if isinstance(info, CharacteristicInfo):
-                node.label = characteristic_label(info, info.key in self._state.subscribed)
+                node.label = characteristic_label(
+                    info, info.key in self._state.subscribed
+                )
 
     def _select_device_from_cursor(self) -> bool:
         devices = self.query_one("#devices", DataTable)
@@ -400,7 +438,9 @@ class BleTui(App):
     async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         self._selected_device = event.row_key.value
 
-    async def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+    async def on_data_table_row_highlighted(
+        self, event: DataTable.RowHighlighted
+    ) -> None:
         self._selected_device = event.row_key.value
 
     def _pane_widgets(self) -> list[Any]:
@@ -451,7 +491,9 @@ class BleTui(App):
                     self._select_device_from_cursor()
 
                 if self._client and self._client.is_connected:
-                    if self._selected_device and self._selected_device == str(self._client.address):
+                    if self._selected_device and self._selected_device == str(
+                        self._client.address
+                    ):
                         self._set_status(f"Already connected: {self._selected_device}")
                         return
                 await self.action_connect()
@@ -482,4 +524,4 @@ class BleTui(App):
         await self._disconnect_internal()
 
 
-__all__ = ["BleTuiApp"]
+__all__ = ["BleTui"]
