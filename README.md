@@ -13,7 +13,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 - 🔌 **Device Connection** - Connect to any discovered BLE device
 - 🔬 **GATT Explorer** - Browse all services and characteristics with a tree view
 - 📖 **Characteristic Reading** - Read values from any readable characteristic
-- ✏️ **Characteristic Writing** - Write hex or text data to writable characteristics via a modal dialog
+- ✏️ **Characteristic Writing** - Write text or hex data to writable characteristics via a modal dialog (F2 to toggle mode)
 - 🔔 **Notifications** - Subscribe to characteristic notifications in real-time
 - 📊 **Dual Display** - View values in both hex and JSON formats with syntax highlighting
 - 📜 **Scrollable Latest Value** - Keyboard scrolling for long characteristic values (arrow keys, page up/down, home/end)
@@ -64,7 +64,7 @@ python3 -m ble_tui
 | `c` / `Enter` | Connect to selected device |
 | `d` / `Escape` | Disconnect from device |
 | `r` | Read selected characteristic |
-| `w` | Write to selected characteristic (hex/text input dialog) |
+| `w` | Write to selected characteristic (text/hex input dialog, F2 to toggle) |
 | `Space` / `n` | Toggle notifications for selected characteristic |
 | `Tab` | Navigate to next pane (Devices → GATT → Latest Value → History) |
 | `Shift+Tab` | Navigate to previous pane |
@@ -80,7 +80,7 @@ python3 -m ble_tui
 3. **Connect**: Press `Enter` to connect to the selected device
 4. **Explore**: Browse services and characteristics in the GATT pane
 5. **Read**: Select a characteristic and press `r` to read its value
-6. **Write**: Press `w` to write hex or text data to a writable characteristic
+6. **Write**: Press `w` to write text or hex data to a writable characteristic (F2 to toggle mode)
 7. **Scroll**: Press `Tab` to focus the Latest Value pane, then use arrow keys to scroll through long values
 8. **Notify**: Press `Space` to subscribe to notifications
 9. **Disconnect**: Press `d` or `Escape` to disconnect

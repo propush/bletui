@@ -4,7 +4,7 @@
 - Build a Python TUI app for macOS, Linux, and Windows to scan BLE devices and let the user choose one from a list sorted by signal strength (RSSI).
 - The app discovers all services/characteristics (128-bit UUIDs) without prior UUID list.
 - User selects which characteristics to read, write to, and subscribe/notify.
-- Write support: modal dialog with hex/text input modes, write-with-response and write-without-response.
+- Write support: modal dialog with text/hex input modes (F2 to toggle, defaults to text). Write-with-response is used automatically when available.
 - Display characteristic values in hex and attempt UTF-8 JSON parsing when valid; otherwise hex only.
 - Device list includes all discovered devices, even unnamed.
 - Default non-functional assumptions: scan timeout 10s, connect timeout 15s, refresh 4 Hz, keep last 200 messages per characteristic.
@@ -23,7 +23,7 @@
 - Async `textual` app with `bleak` for BLE I/O.
 - Scan flow: 10s scan, collect all advertisements, deduplicate by address/identifier, sort by RSSI, populate device list.
 - Connect flow: connect with 15s timeout, discover GATT services/characteristics, model in memory, render in UI.
-- Read/write/notify flow: user triggers read, write, or toggles notification. Write opens a modal dialog for hex or text input. Notifications push log entries (max 200) to UI.
+- Read/write/notify flow: user triggers read, write, or toggles notification. Write opens a modal dialog for text or hex input (F2 to toggle). Notifications push log entries (max 200) to UI.
 
 ## UI & Interaction Model
 - **Device List Pane**: rows show `RSSI | Name | Address`, sorted by RSSI. Select to connect.

@@ -4,7 +4,9 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, Label, TextArea
+from textual.widgets import Button, Label, TextArea
+
+from ble_tui.ui.styles import WRITE_DIALOG_CSS
 
 
 def parse_hex_string(hex_str: str) -> bytes | None:
@@ -31,54 +33,7 @@ class WriteDialog(ModalScreen[tuple[bytes, bool] | None]):
         Binding("f2", "toggle_mode", "Hex/Text", show=True),
     ]
 
-    DEFAULT_CSS = """
-    WriteDialog {
-        align: center middle;
-    }
-    #write-dialog-container {
-        width: 70;
-        height: auto;
-        max-height: 30;
-        background: #1a2235;
-        border: solid #3a5070;
-        padding: 1 2;
-    }
-    #write-dialog-title {
-        text-style: bold;
-        color: #96acd2;
-        margin-bottom: 1;
-    }
-    #write-mode-row {
-        height: 1;
-        margin-bottom: 1;
-    }
-    #write-mode-label {
-        color: #90a4c6;
-    }
-    #write-mode-value {
-        color: #ffffff;
-        text-style: bold;
-    }
-    #write-input {
-        height: 7;
-        margin-bottom: 1;
-    }
-    #write-response-checkbox {
-        margin-bottom: 1;
-    }
-    #write-error {
-        color: red;
-        height: 1;
-        margin-bottom: 1;
-    }
-    #write-buttons {
-        height: 3;
-        align: right middle;
-    }
-    #write-buttons Button {
-        margin-left: 1;
-    }
-    """
+    DEFAULT_CSS = WRITE_DIALOG_CSS
 
     def __init__(
         self,
@@ -90,23 +45,16 @@ class WriteDialog(ModalScreen[tuple[bytes, bool] | None]):
         self._char_uuid = char_uuid
         self._has_write = has_write
         self._has_write_no_response = has_write_no_response
-        self._hex_mode = True
+        self._hex_mode = False
 
     def compose(self) -> ComposeResult:
         with Vertical(id="write-dialog-container"):
             yield Label(f"Write to {self._char_uuid}", id="write-dialog-title")
             with Horizontal(id="write-mode-row"):
                 yield Label("Format: ", id="write-mode-label")
-                yield Label("Hex", id="write-mode-value")
+                yield Label("Text", id="write-mode-value")
                 yield Label("  (F2 to toggle)", classes="dim-hint")
-            yield TextArea("", id="write-input", language=None)
-            show_checkbox = self._has_write and self._has_write_no_response
-            yield Checkbox(
-                "Write with response",
-                value=False,
-                id="write-response-checkbox",
-                classes="" if show_checkbox else "hidden",
-            )
+            yield TextArea("", id="write-input", language=None, show_line_numbers=False)
             yield Label("", id="write-error")
             with Horizontal(id="write-buttons"):
                 yield Button("Cancel", variant="default", id="write-cancel")
@@ -148,14 +96,7 @@ class WriteDialog(ModalScreen[tuple[bytes, bool] | None]):
         else:
             data = raw.encode("utf-8")
 
-        if self._has_write and self._has_write_no_response:
-            # Both supported — let user choose via checkbox
-            use_response = self.query_one("#write-response-checkbox", Checkbox).value
-        elif self._has_write:
-            # Only write-with-response supported
-            use_response = True
-        else:
-            # Only write-without-response supported
-            use_response = False
+        # Prefer write-with-response when available
+        use_response = self._has_write
 
         self.dismiss((data, use_response))

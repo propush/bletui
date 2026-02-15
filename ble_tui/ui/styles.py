@@ -87,3 +87,49 @@ RichLog {
     color: #5a6a82;
 }
 """
+
+WRITE_DIALOG_CSS = """
+WriteDialog {
+    align: center middle;
+}
+#write-dialog-container {
+    width: 70;
+    height: auto;
+    max-height: 30;
+    background: #1a2235;
+    border: solid #3a5070;
+    padding: 1 2;
+}
+#write-dialog-title {
+    text-style: bold;
+    color: #96acd2;
+    margin-bottom: 1;
+}
+#write-mode-row {
+    height: 1;
+    margin-bottom: 1;
+}
+#write-mode-label {
+    color: #90a4c6;
+}
+#write-mode-value {
+    color: #ffffff;
+    text-style: bold;
+}
+#write-input {
+    height: 7;
+    margin-bottom: 1;
+}
+#write-error {
+    color: red;
+    height: 1;
+    margin-bottom: 1;
+}
+#write-buttons {
+    height: 3;
+    align: right middle;
+}
+#write-buttons Button {
+    margin-left: 1;
+}
+"""

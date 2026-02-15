@@ -63,7 +63,7 @@ The app maintains state in instance variables and uses a `StateService` for shar
 2. **Connect**: `BleakClient` with 15s timeout, registers disconnect callback
 3. **Discover**: Auto-discover all services/characteristics via `client.services`
 4. **Read**: On-demand read via `client.read_gatt_char()`
-5. **Write**: Write data via `client.write_gatt_char()`, supports hex/text input and write-with/without-response via a modal dialog (`WriteDialog`)
+5. **Write**: Write data via `client.write_gatt_char()`, supports text/hex input (F2 to toggle, defaults to text) via a modal dialog (`WriteDialog`). Write-with-response is used automatically when available.
 6. **Notify**: Toggle subscription via `client.start_notify()` / `client.stop_notify()`
 
 ## Keybindings
@@ -72,7 +72,7 @@ The app maintains state in instance variables and uses a `StateService` for shar
 - `c` / `Enter`: Connect to selected device
 - `d` / `Escape`: Disconnect
 - `r`: Read selected characteristic
-- `w`: Write to selected characteristic (opens hex/text input dialog)
+- `w`: Write to selected characteristic (opens text/hex input dialog, F2 to toggle mode)
 - `Space` / `n`: Toggle notifications for selected characteristic
 - `Tab` / `Shift+Tab`: Navigate between panes (Devices → GATT → Latest Value → History)
 - `Arrow Keys`: Scroll through latest value display (when focused)
