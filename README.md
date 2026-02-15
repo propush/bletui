@@ -315,7 +315,7 @@ See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
 
 ## License
 
-[Your License Here]
+This project is licensed under the **BSD 3-Clause License**. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
