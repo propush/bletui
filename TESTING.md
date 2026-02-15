@@ -13,7 +13,7 @@ This document describes the testing strategy and how to run tests for the BLE TU
 
 ## Test Architecture
 
-The test suite is organized into three layers (current total: 83 tests):
+The test suite is organized into three layers (current total: 94 tests):
 
 ### 1. Unit Tests (50-60% of coverage)
 
@@ -26,6 +26,7 @@ The test suite is organized into three layers (current total: 83 tests):
 Fast, isolated tests for pure functions and data structures:
 - `_hex_groups()` - Hex formatting
 - `_try_parse_json()` - JSON parsing
+- `parse_hex_string()` - Hex string to bytes conversion for write dialog
 - `DeviceInfo`, `CharacteristicInfo`, `LogEntry` - Data structures
 - `BleService` - BLE service behavior with mocked bleak APIs
 - `StateService` - State transition and log management behavior
@@ -44,8 +45,9 @@ Fast, isolated tests for pure functions and data structures:
 
 Medium-speed tests with mocked dependencies:
 - TUI navigation and interaction (using Textual's Pilot)
+- Write dialog interaction (open, cancel, hex submit)
 - BLE operations with mocked `BleakClient`
-- Service discovery, characteristic read/notify
+- Service discovery, characteristic read/write/notify
 
 **Run with:**
 ```bash

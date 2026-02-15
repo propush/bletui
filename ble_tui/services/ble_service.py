@@ -77,5 +77,10 @@ class BleService:
     ) -> None:
         await client.start_notify(target, callback)
 
+    async def write_char(
+        self, client: BleakClient, target: str | int, data: bytes, response: bool = True
+    ) -> None:
+        await client.write_gatt_char(target, data, response=response)
+
     async def stop_notify(self, client: BleakClient, target: str | int) -> None:
         await client.stop_notify(target)

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Python TUI (Terminal User Interface) application for scanning, connecting to, and interacting with BLE (Bluetooth Low Energy) devices on macOS, Linux, and Windows. The app discovers GATT services and characteristics, supports reading and notification subscriptions, and displays values in both hex and JSON formats.
+A Python TUI (Terminal User Interface) application for scanning, connecting to, and interacting with BLE (Bluetooth Low Energy) devices on macOS, Linux, and Windows. The app discovers GATT services and characteristics, supports reading, writing, and notification subscriptions, and displays values in both hex and JSON formats.
 
 ## Running the Application
 
@@ -35,7 +35,7 @@ The application is a modular package under `ble_tui/` with a `BleTui` orchestrat
 - `ble_tui/app.py`: Textual app orchestration (`BleTui`)
 - `ble_tui/models/`: `DeviceInfo`, `CharacteristicInfo`, `LogEntry`
 - `ble_tui/services/`: `BleService`, `StateService`
-- `ble_tui/ui/`: renderers and CSS styles
+- `ble_tui/ui/`: renderers, CSS styles, and modal dialogs (e.g. `WriteDialog`)
 - `ble_tui/utils/`: formatting helpers and constants
 - `app.py`: backward-compatible shim entry point
 
@@ -57,13 +57,14 @@ The app maintains state in instance variables and uses a `StateService` for shar
 
 ### Key Flows
 
-**Scan → Connect → Discover → Read/Notify**
+**Scan → Connect → Discover → Read/Write/Notify**
 
 1. **Scan**: 10s BLE scan via `BleakScanner.discover()`, devices sorted by RSSI
 2. **Connect**: `BleakClient` with 15s timeout, registers disconnect callback
 3. **Discover**: Auto-discover all services/characteristics via `client.services`
 4. **Read**: On-demand read via `client.read_gatt_char()`
-5. **Notify**: Toggle subscription via `client.start_notify()` / `client.stop_notify()`
+5. **Write**: Write data via `client.write_gatt_char()`, supports hex/text input and write-with/without-response via a modal dialog (`WriteDialog`)
+6. **Notify**: Toggle subscription via `client.start_notify()` / `client.stop_notify()`
 
 ## Keybindings
 
@@ -71,6 +72,7 @@ The app maintains state in instance variables and uses a `StateService` for shar
 - `c` / `Enter`: Connect to selected device
 - `d` / `Escape`: Disconnect
 - `r`: Read selected characteristic
+- `w`: Write to selected characteristic (opens hex/text input dialog)
 - `Space` / `n`: Toggle notifications for selected characteristic
 - `Tab` / `Shift+Tab`: Navigate between panes (Devices → GATT → Latest Value → History)
 - `Arrow Keys`: Scroll through latest value display (when focused)
@@ -89,17 +91,17 @@ Errors are logged to `ble_tui_errors.log` with full tracebacks. The app uses non
 
 ## Testing
 
-### Comprehensive Test Suite (83 Tests)
+### Comprehensive Test Suite (94 Tests)
 
 The project has a three-layer testing architecture:
 
-**Unit Tests (42 tests)** - `tests/test_unit.py`, `tests/test_ble_service.py`, `tests/test_state_service.py`, `tests/test_renderers.py`, `tests/test_platform_support.py`
-- Pure function tests: `_hex_groups()`, `_try_parse_json()`, `latest_value_markup()`
+**Unit Tests (48 tests)** - `tests/test_unit.py`, `tests/test_ble_service.py`, `tests/test_state_service.py`, `tests/test_renderers.py`, `tests/test_platform_support.py`
+- Pure function tests: `_hex_groups()`, `_try_parse_json()`, `latest_value_markup()`, `parse_hex_string()`
 - Data structure validation: `DeviceInfo`, `CharacteristicInfo`, `LogEntry`
 - Fast, no dependencies, runs in CI
 
-**Integration Tests (33 tests)**
-- `tests/test_integration_tui.py` (17 tests): Textual UI testing with Pilot, including latest value scrolling and tab navigation
+**Integration Tests (38 tests)**
+- `tests/test_integration_tui.py` (22 tests): Textual UI testing with Pilot, including latest value scrolling, tab navigation, and write dialog
 - `tests/test_integration_ble.py` (16 tests): BLE operations with mocked client
 - Medium speed, mocked BLE, runs in CI
 

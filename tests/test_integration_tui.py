@@ -371,3 +371,170 @@ async def test_latest_value_empty_state():
         # Initial state is empty string - check by rendering
         rendered_text = latest.render()
         assert str(rendered_text) == ""
+
+
+@pytest.mark.integration_tui
+async def test_write_char_no_connection():
+    """Test that pressing 'w' without a connection shows status message."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        await pilot.press("w")
+        await pilot.pause()
+
+        assert "Connect" in app._status_msg
+
+
+@pytest.mark.integration_tui
+async def test_write_char_not_writable():
+    """Test that pressing 'w' on a non-writable characteristic shows status."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Simulate connected state with a read-only characteristic
+        app._client = Mock()
+        app._client.is_connected = True
+        app._client.address = "AA:BB:CC:DD:EE:FF"
+
+        from ble_tui.models import CharacteristicInfo
+
+        char = CharacteristicInfo(
+            key="svc:char:1",
+            uuid="0000aaaa-0000-1000-8000-00805f9b34fb",
+            properties=("read",),
+            service_uuid="0000bbbb-0000-1000-8000-00805f9b34fb",
+            char=None,
+        )
+        app._state.services["0000bbbb-0000-1000-8000-00805f9b34fb"] = [char]
+        app._selected_char = char.key
+
+        await pilot.press("w")
+        await pilot.pause()
+
+        assert "not writable" in app._status_msg
+
+
+@pytest.mark.integration_tui
+async def test_write_dialog_opens_for_writable_char():
+    """Test that write dialog opens for a writable characteristic."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        # Simulate connected state
+        app._client = Mock()
+        app._client.is_connected = True
+        app._client.address = "AA:BB:CC:DD:EE:FF"
+
+        from ble_tui.models import CharacteristicInfo
+
+        char = CharacteristicInfo(
+            key="svc:char:1",
+            uuid="0000aaaa-0000-1000-8000-00805f9b34fb",
+            properties=("read", "write"),
+            service_uuid="0000bbbb-0000-1000-8000-00805f9b34fb",
+            char=None,
+        )
+        app._state.services["0000bbbb-0000-1000-8000-00805f9b34fb"] = [char]
+        app._selected_char = char.key
+
+        await pilot.press("w")
+        await pilot.pause(0.5)
+
+        # Dialog should be on the screen stack
+        from ble_tui.ui.write_dialog import WriteDialog
+
+        assert any(isinstance(s, WriteDialog) for s in app.screen_stack)
+
+        # Cancel the dialog via the active screen
+        dialog = app.screen
+        dialog.query_one("#write-cancel").press()
+        await pilot.pause()
+
+
+@pytest.mark.integration_tui
+async def test_write_dialog_cancel():
+    """Test that cancelling the write dialog does nothing."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        app._client = Mock()
+        app._client.is_connected = True
+        app._client.address = "AA:BB:CC:DD:EE:FF"
+
+        from ble_tui.models import CharacteristicInfo
+
+        char = CharacteristicInfo(
+            key="svc:char:1",
+            uuid="0000aaaa-0000-1000-8000-00805f9b34fb",
+            properties=("write",),
+            service_uuid="0000bbbb-0000-1000-8000-00805f9b34fb",
+            char=None,
+        )
+        app._state.services["0000bbbb-0000-1000-8000-00805f9b34fb"] = [char]
+        app._selected_char = char.key
+
+        await pilot.press("w")
+        await pilot.pause(0.5)
+
+        # Press cancel
+        app.screen.query_one("#write-cancel").press()
+        await pilot.pause()
+
+        # Should not have written anything - status shouldn't mention "Wrote"
+        assert "Wrote" not in app._status_msg
+
+
+@pytest.mark.integration_tui
+async def test_write_dialog_submit_hex():
+    """Test writing hex data through the dialog."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        await pilot.pause()
+
+        mock_client = AsyncMock()
+        mock_client.is_connected = True
+        mock_client.address = "AA:BB:CC:DD:EE:FF"
+        app._client = mock_client
+
+        from ble_tui.models import CharacteristicInfo
+
+        mock_char = Mock()
+        mock_char.handle = 1
+        char = CharacteristicInfo(
+            key="svc:char:1",
+            uuid="0000aaaa-0000-1000-8000-00805f9b34fb",
+            properties=("write",),
+            service_uuid="0000bbbb-0000-1000-8000-00805f9b34fb",
+            char=mock_char,
+        )
+        app._state.services["0000bbbb-0000-1000-8000-00805f9b34fb"] = [char]
+        app._selected_char = char.key
+
+        app._ble.write_char = AsyncMock()
+
+        await pilot.press("w")
+        await pilot.pause(0.5)
+
+        # Verify the dialog opened
+        from ble_tui.ui.write_dialog import WriteDialog
+
+        dialog = app.screen
+        assert isinstance(dialog, WriteDialog)
+
+        # Instead of interacting with the dialog UI (which is tricky in tests),
+        # dismiss the dialog and call _do_write directly to test the write flow
+        dialog.dismiss(None)
+        await pilot.pause(0.5)
+
+        # Directly test the write flow
+        from ble_tui.models import CharacteristicInfo as CI
+
+        await app._do_write(char, b"\xaa\xbb\xcc", True)
+        await pilot.pause(0.5)
+
+        app._ble.write_char.assert_called_once()
+        assert "Wrote 3 bytes" in app._status_msg

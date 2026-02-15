@@ -395,6 +395,54 @@ def test_latest_value_markup_binary_only():
     assert "JSON:" not in result  # No JSON section for binary data
 
 
+# =============================================================================
+# Tests for parse_hex_string()
+# =============================================================================
+
+@pytest.mark.unit
+def test_parse_hex_string_basic():
+    """Test parse_hex_string with basic hex input."""
+    from ble_tui.ui.write_dialog import parse_hex_string
+    assert parse_hex_string("AA BB CC") == b"\xaa\xbb\xcc"
+
+
+@pytest.mark.unit
+def test_parse_hex_string_no_spaces():
+    """Test parse_hex_string without spaces."""
+    from ble_tui.ui.write_dialog import parse_hex_string
+    assert parse_hex_string("AABBCC") == b"\xaa\xbb\xcc"
+
+
+@pytest.mark.unit
+def test_parse_hex_string_lowercase():
+    """Test parse_hex_string with lowercase hex."""
+    from ble_tui.ui.write_dialog import parse_hex_string
+    assert parse_hex_string("0a ff 01") == b"\x0a\xff\x01"
+
+
+@pytest.mark.unit
+def test_parse_hex_string_empty():
+    """Test parse_hex_string with empty string."""
+    from ble_tui.ui.write_dialog import parse_hex_string
+    assert parse_hex_string("") is None
+    assert parse_hex_string("   ") is None
+
+
+@pytest.mark.unit
+def test_parse_hex_string_invalid():
+    """Test parse_hex_string with invalid hex characters."""
+    from ble_tui.ui.write_dialog import parse_hex_string
+    assert parse_hex_string("GG HH") is None
+    assert parse_hex_string("not hex") is None
+
+
+@pytest.mark.unit
+def test_parse_hex_string_odd_length():
+    """Test parse_hex_string with odd number of hex chars."""
+    from ble_tui.ui.write_dialog import parse_hex_string
+    assert parse_hex_string("AAB") is None
+
+
 @pytest.mark.unit
 def test_latest_value_markup_includes_hex():
     """Test that latest value markup includes full hex string."""

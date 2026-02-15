@@ -4,7 +4,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
-![Tests](https://img.shields.io/badge/tests-65%20fast%20passed-green)
+![Tests](https://img.shields.io/badge/tests-94%20fast%20passed-green)
 ![Coverage](https://img.shields.io/badge/coverage-85%2B%25-green)
 
 ## Features
@@ -13,11 +13,12 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 - 🔌 **Device Connection** - Connect to any discovered BLE device
 - 🔬 **GATT Explorer** - Browse all services and characteristics with a tree view
 - 📖 **Characteristic Reading** - Read values from any readable characteristic
+- ✏️ **Characteristic Writing** - Write hex or text data to writable characteristics via a modal dialog
 - 🔔 **Notifications** - Subscribe to characteristic notifications in real-time
 - 📊 **Dual Display** - View values in both hex and JSON formats with syntax highlighting
 - 📜 **Scrollable Latest Value** - Keyboard scrolling for long characteristic values (arrow keys, page up/down, home/end)
 - ⌨️ **Keyboard Navigation** - Full keyboard control with intuitive shortcuts and 4-pane tab navigation
-- ✅ **Comprehensive Testing** - 83 tests with 85%+ coverage
+- ✅ **Comprehensive Testing** - 94 tests with 85%+ coverage
 
 ## Screenshots
 
@@ -63,6 +64,7 @@ python3 -m ble_tui
 | `c` / `Enter` | Connect to selected device |
 | `d` / `Escape` | Disconnect from device |
 | `r` | Read selected characteristic |
+| `w` | Write to selected characteristic (hex/text input dialog) |
 | `Space` / `n` | Toggle notifications for selected characteristic |
 | `Tab` | Navigate to next pane (Devices → GATT → Latest Value → History) |
 | `Shift+Tab` | Navigate to previous pane |
@@ -78,18 +80,19 @@ python3 -m ble_tui
 3. **Connect**: Press `Enter` to connect to the selected device
 4. **Explore**: Browse services and characteristics in the GATT pane
 5. **Read**: Select a characteristic and press `r` to read its value
-6. **Scroll**: Press `Tab` to focus the Latest Value pane, then use arrow keys to scroll through long values
-7. **Notify**: Press `Space` to subscribe to notifications
-8. **Disconnect**: Press `d` or `Escape` to disconnect
+6. **Write**: Press `w` to write hex or text data to a writable characteristic
+7. **Scroll**: Press `Tab` to focus the Latest Value pane, then use arrow keys to scroll through long values
+8. **Notify**: Press `Space` to subscribe to notifications
+9. **Disconnect**: Press `d` or `Escape` to disconnect
 
 ## Testing
 
 ### Test Suite Overview
 
-The project includes **83 comprehensive tests** across three layers:
+The project includes **94 comprehensive tests** across three layers:
 
-- **42 Unit Tests** - Fast, isolated tests for pure functions, models, services, and renderers
-- **33 Integration Tests** - TUI and BLE operation tests with mocked dependencies, including latest value scrolling
+- **48 Unit Tests** - Fast, isolated tests for pure functions, models, services, and renderers
+- **38 Integration Tests** - TUI and BLE operation tests with mocked dependencies, including write dialog and latest value scrolling
 - **8 E2E Tests** - Full workflow tests against real BLE hardware
 
 ### Running Tests
@@ -114,7 +117,7 @@ open htmlcov/index.html
 ### Test Results (Fast Suite)
 
 ```
-==================== 83 passed, 8 deselected in 86.76s ========================
+==================== 94 passed, 8 deselected in 99.82s ========================
 ✓ Tests passed!
 ```
 
@@ -182,7 +185,8 @@ The app now uses a modular package layout:
 2. Connect → Connect to device via `BleakClient`
 3. Discover → Auto-discover services/characteristics
 4. Read → Read characteristic values
-5. Notify → Subscribe to characteristic notifications
+5. Write → Write data to characteristics via modal dialog (hex/text)
+6. Notify → Subscribe to characteristic notifications
 
 See [DESIGN.md](DESIGN.md) for detailed architecture documentation.
 
@@ -277,6 +281,7 @@ See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
 ## Limitations
 
 - No BLE pairing/bonding support
+- Write operations support hex and UTF-8 text input only
 - Maximum 200 log entries per characteristic
 - 10-second scan timeout and 15-second connect timeout by default
 

@@ -3,7 +3,8 @@
 ## Understanding Summary
 - Build a Python TUI app for macOS, Linux, and Windows to scan BLE devices and let the user choose one from a list sorted by signal strength (RSSI).
 - The app discovers all services/characteristics (128-bit UUIDs) without prior UUID list.
-- User selects which characteristics to read and which to subscribe/notify.
+- User selects which characteristics to read, write to, and subscribe/notify.
+- Write support: modal dialog with hex/text input modes, write-with-response and write-without-response.
 - Display characteristic values in hex and attempt UTF-8 JSON parsing when valid; otherwise hex only.
 - Device list includes all discovered devices, even unnamed.
 - Default non-functional assumptions: scan timeout 10s, connect timeout 15s, refresh 4 Hz, keep last 200 messages per characteristic.
@@ -22,7 +23,7 @@
 - Async `textual` app with `bleak` for BLE I/O.
 - Scan flow: 10s scan, collect all advertisements, deduplicate by address/identifier, sort by RSSI, populate device list.
 - Connect flow: connect with 15s timeout, discover GATT services/characteristics, model in memory, render in UI.
-- Read/notify flow: user triggers read or toggles notification. Notifications push log entries (max 200) to UI.
+- Read/write/notify flow: user triggers read, write, or toggles notification. Write opens a modal dialog for hex or text input. Notifications push log entries (max 200) to UI.
 
 ## UI & Interaction Model
 - **Device List Pane**: rows show `RSSI | Name | Address`, sorted by RSSI. Select to connect.
@@ -35,6 +36,7 @@
 - `c` / `enter`: select/connect
 - `d` / `escape`: disconnect
 - `r`: read selected characteristic
+- `w`: write to selected characteristic (opens hex/text input dialog)
 - `n` / `space`: toggle notifications for selected characteristic
 - `tab` / `shift+tab`: navigate between panes (Devices → GATT → Latest Value → History)
 - `↑` / `↓` / `Page Up` / `Page Down` / `Home` / `End`: scroll latest value (when focused)
@@ -52,23 +54,24 @@
 
 ### Three-Layer Test Architecture
 
-The project implements a comprehensive testing strategy with 83 total tests across three layers:
+The project implements a comprehensive testing strategy with 94 total tests across three layers:
 
-**1. Unit Tests (42 tests)**
-- Pure function tests: `_hex_groups()`, `_try_parse_json()`, `latest_value_markup()`
+**1. Unit Tests (48 tests)**
+- Pure function tests: `_hex_groups()`, `_try_parse_json()`, `latest_value_markup()`, `parse_hex_string()`
 - Data structure tests: `DeviceInfo`, `CharacteristicInfo`, `LogEntry`
 - Immutability and edge case validation
 - Rendering and formatting helpers
 - Fast, no external dependencies, runs in CI
 - Coverage: ~50-60% of total
 
-**2. Integration Tests (33 tests)**
-- **TUI Integration (17 tests)**: Textual Pilot-based UI testing
+**2. Integration Tests (38 tests)**
+- **TUI Integration (22 tests)**: Textual Pilot-based UI testing
   - Keyboard navigation (Tab, Shift+Tab, 4-pane navigation)
   - Latest value scrolling and widget structure
   - Scan action with mocked BleakScanner
   - Device selection and pane switching
   - GATT tree rendering
+  - Write dialog open/cancel/submit flows
 - **BLE Integration (16 tests)**: Mocked BleakClient testing
   - Connect/disconnect flows
   - GATT service/characteristic discovery

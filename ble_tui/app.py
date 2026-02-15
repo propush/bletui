@@ -22,6 +22,7 @@ from ble_tui.ui.renderers import (
     status_line,
 )
 from ble_tui.ui.styles import APP_CSS
+from ble_tui.ui.write_dialog import WriteDialog
 from ble_tui.utils import ERROR_LOG_PATH, format_ble_error
 
 
@@ -38,6 +39,7 @@ class BleTui(App):
         ("enter", "connect", "Connect"),
         ("r", "read_char", "Read"),
         ("n", "toggle_notify", "Notify"),
+        ("w", "write_char", "Write"),
         ("h", "toggle_value_height", "Expand"),
         ("q", "quit", "Quit"),
     ]
@@ -352,6 +354,65 @@ class BleTui(App):
 
             self._refresh_gatt_labels()
             self._render_status()
+
+    async def action_write_char(self) -> None:
+        if not self._client:
+            self._set_status("Connect to a device first.")
+            return
+
+        info = self._sync_selected_char_from_tree()
+        if info is None and self._selected_char:
+            info = self._state.find_char(self._selected_char)
+
+        has_write = info is not None and "write" in info.properties
+        has_write_nr = info is not None and "write-without-response" in info.properties
+
+        if not has_write and not has_write_nr:
+            self._set_status("Selected characteristic is not writable.")
+            return
+
+        dialog = WriteDialog(
+            char_uuid=info.uuid,
+            has_write=has_write,
+            has_write_no_response=has_write_nr,
+        )
+
+        def _on_dismiss(result: tuple[bytes, bool] | None) -> None:
+            if result is None:
+                return
+            data, use_response = result
+            asyncio.create_task(self._do_write(info, data, use_response))
+
+        self.push_screen(dialog, callback=_on_dismiss)
+
+    async def _do_write(
+        self, info: CharacteristicInfo, data: bytes, use_response: bool
+    ) -> None:
+        async with self._ble_lock:
+            try:
+                await self._ble.write_char(
+                    self._client, self._char_target(info), data, response=use_response
+                )
+            except Exception as exc:
+                if use_response:
+                    self._record_error("write_char (with-response, retrying without)", exc)
+                    try:
+                        await self._ble.write_char(
+                            self._client, self._char_target(info), data, response=False
+                        )
+                    except Exception as exc2:
+                        self._record_error("write_char (without-response)", exc2)
+                        self._set_status(f"Write failed (details in {ERROR_LOG_PATH})")
+                        return
+                    self._set_status(
+                        f"Wrote {len(data)} bytes to {info.uuid} (no-response fallback)"
+                    )
+                    return
+                self._record_error("write_char", exc)
+                self._set_status(f"Write failed (details in {ERROR_LOG_PATH})")
+                return
+
+        self._set_status(f"Wrote {len(data)} bytes to {info.uuid}")
 
     def _find_char(self, key: str) -> Optional[CharacteristicInfo]:
         return self._state.find_char(key)

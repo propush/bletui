@@ -80,4 +80,10 @@ RichLog {
 #log.collapsed {
     max-height: 3;
 }
+.hidden {
+    display: none;
+}
+.dim-hint {
+    color: #5a6a82;
+}
 """
