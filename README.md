@@ -65,6 +65,7 @@ python3 -m ble_tui
 | `d` / `Escape` | Disconnect from device |
 | `r` | Read selected characteristic |
 | `w` | Write to selected characteristic (text/hex input dialog, F2 to toggle) |
+| `l` | Clear history and current value for selected characteristic |
 | `Space` / `n` | Toggle notifications for selected characteristic |
 | `Tab` | Navigate to next pane (Devices → GATT → Latest Value → History) |
 | `Shift+Tab` | Navigate to previous pane |

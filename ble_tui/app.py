@@ -40,6 +40,7 @@ class BleTui(App):
         ("r", "read_char", "Read"),
         ("n", "toggle_notify", "Notify"),
         ("w", "write_char", "Write"),
+        ("l", "clear_log", "Clear"),
         ("h", "toggle_value_height", "Expand"),
         ("q", "quit", "Quit"),
     ]
@@ -413,6 +414,26 @@ class BleTui(App):
                 return
 
         self._set_status(f"Wrote {len(data)} bytes to {info.uuid}")
+
+    async def action_clear_log(self) -> None:
+        """Clear history and current value for the selected characteristic."""
+        if not self._selected_char:
+            self._set_status("No characteristic selected to clear.")
+            return
+
+        info = self._state.find_char(self._selected_char)
+        if not info:
+            self._set_status("Selected characteristic not found.")
+            return
+
+        # Clear logs and latest data using StateService method
+        self._state.clear_char_log(self._selected_char)
+
+        # Re-render the log display (handles empty state gracefully)
+        self._render_log(self._selected_char)
+
+        # Provide user feedback
+        self._set_status(f"Cleared history for {info.uuid}")
 
     def _find_char(self, key: str) -> Optional[CharacteristicInfo]:
         return self._state.find_char(key)

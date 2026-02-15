@@ -538,3 +538,95 @@ async def test_write_dialog_submit_hex():
 
         app._ble.write_char.assert_called_once()
         assert "Wrote 3 bytes" in app._status_msg
+
+
+@pytest.mark.integration_tui
+async def test_clear_log_with_no_selection():
+    """Test 'l' key with no characteristic selected shows error."""
+    async with BleTui().run_test() as pilot:
+        await pilot.press("l")
+        await pilot.pause()
+        assert "No characteristic selected" in pilot.app._status_msg
+
+
+@pytest.mark.integration_tui
+async def test_clear_log_clears_selected_only():
+    """Test 'l' key clears only the selected characteristic."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+
+        # Create mock characteristics
+        from ble_tui.models import CharacteristicInfo
+
+        char1 = Mock()
+        char1.handle = 10
+        char2 = Mock()
+        char2.handle = 20
+
+        info1 = CharacteristicInfo(
+            key="svc:char1:10",
+            uuid="char1",
+            properties=("read",),
+            service_uuid="svc",
+            char=char1,
+        )
+        info2 = CharacteristicInfo(
+            key="svc:char2:20",
+            uuid="char2",
+            properties=("read",),
+            service_uuid="svc",
+            char=char2,
+        )
+
+        # Set up GATT services
+        app._state.services = {"svc": [info1, info2]}
+
+        # Add logs for two characteristics
+        key1, key2 = "svc:char1:10", "svc:char2:20"
+        app._state.append_value(key1, b"data1")
+        app._state.append_value(key2, b"data2")
+
+        # Select and clear first characteristic
+        app._selected_char = key1
+        await pilot.press("l")
+        await pilot.pause()
+
+        # Verify only key1 cleared, key2 preserved
+        assert len(app._state.logs[key1]) == 0
+        assert len(app._state.logs[key2]) == 1
+
+
+@pytest.mark.integration_tui
+async def test_clear_log_preserves_notifications():
+    """Test 'l' key doesn't stop notification subscriptions."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+
+        # Create mock characteristic
+        from ble_tui.models import CharacteristicInfo
+
+        char = Mock()
+        char.handle = 42
+
+        info = CharacteristicInfo(
+            key="svc:char:42",
+            uuid="char",
+            properties=("notify",),
+            service_uuid="svc",
+            char=char,
+        )
+
+        # Set up GATT service
+        app._state.services = {"svc": [info]}
+
+        key = "svc:char:42"
+        app._state.subscribed.add(key)
+        app._state.append_value(key, b"notification")
+        app._selected_char = key
+
+        await pilot.press("l")
+        await pilot.pause()
+
+        # Subscription preserved, but logs cleared
+        assert key in app._state.subscribed
+        assert len(app._state.logs[key]) == 0

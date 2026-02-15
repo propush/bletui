@@ -73,6 +73,7 @@ The app maintains state in instance variables and uses a `StateService` for shar
 - `d` / `Escape`: Disconnect
 - `r`: Read selected characteristic
 - `w`: Write to selected characteristic (opens text/hex input dialog, F2 to toggle mode)
+- `l`: Clear history and current value for selected characteristic
 - `Space` / `n`: Toggle notifications for selected characteristic
 - `Tab` / `Shift+Tab`: Navigate between panes (Devices → GATT → Latest Value → History)
 - `Arrow Keys`: Scroll through latest value display (when focused)

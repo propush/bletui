@@ -47,3 +47,27 @@ def test_find_char_and_target_helpers():
 
     assert state.find_char("svc:char:101") == info
     assert state.char_target(info) == 101
+
+
+@pytest.mark.unit
+def test_clear_char_log():
+    """Test clearing logs and latest data for a specific characteristic."""
+    state = StateService()
+    key = "service:char:42"
+    state.append_value(key, b"test data 1")
+    state.append_value(key, b"test data 2")
+
+    assert len(state.logs[key]) == 2
+    assert key in state.latest_data
+
+    state.clear_char_log(key)
+
+    assert len(state.logs[key]) == 0
+    assert key not in state.latest_data
+
+
+@pytest.mark.unit
+def test_clear_char_log_nonexistent_key():
+    """Test clearing a characteristic that doesn't exist (should not error)."""
+    state = StateService()
+    state.clear_char_log("nonexistent:key:999")  # Should not raise

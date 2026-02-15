@@ -59,6 +59,13 @@ class StateService:
         self.latest_data[key] = data  # Store original bytes
         return entry
 
+    def clear_char_log(self, key: str) -> None:
+        """Clear logs and latest data for a specific characteristic."""
+        if key in self.logs:
+            self.logs[key].clear()
+        if key in self.latest_data:
+            del self.latest_data[key]
+
     @staticmethod
     def char_target(info: CharacteristicInfo) -> str | int:
         handle = getattr(info.char, "handle", None)
