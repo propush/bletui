@@ -23,7 +23,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 
 ## Screenshots
 
-![BleTui](images/bletui1.png)
+![BleTui](images/bletui2.png)
 
 ## Quick Start
 
