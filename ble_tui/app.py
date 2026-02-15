@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 import traceback
 from datetime import datetime
 from typing import Any, Optional
@@ -466,9 +467,16 @@ class BleTui(App):
         try:
             self.call_from_thread(self._append_value, key, data)
             self.call_from_thread(self._set_status, f"Notify {uuid} ({len(data)} B)")
-        except Exception:
-            self._append_value(key, data)
-            self._set_status(f"Notify {uuid} ({len(data)} B)")
+        except Exception as exc:
+            # Some BLE backends invoke notification callbacks on the app thread.
+            # In that case, call_from_thread() raises by design; direct calls are safe.
+            if self._thread_id == threading.get_ident():
+                self._append_value(key, data)
+                self._set_status(f"Notify {uuid} ({len(data)} B)")
+                return
+            # If we can't marshal to the main thread (typically during shutdown),
+            # avoid touching Textual widgets from the BLE callback thread.
+            self._record_error("notify_dispatch", exc)
 
     def _render_log(self, key: str) -> None:
         log_view = self.query_one("#log", RichLog)

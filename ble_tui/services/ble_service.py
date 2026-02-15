@@ -9,6 +9,23 @@ from ble_tui.utils import CONNECT_TIMEOUT_S, SCAN_TIMEOUT_S
 
 
 class BleService:
+    async def _resolve_services(self, client: BleakClient) -> Any:
+        """Resolve services across Bleak versions/backends."""
+        services = getattr(client, "services", None)
+        if services is not None:
+            return services
+
+        get_services = getattr(client, "get_services", None)
+        if callable(get_services):
+            return await get_services()
+
+        backend = getattr(client, "_backend", None)
+        backend_get_services = getattr(backend, "get_services", None)
+        if callable(backend_get_services):
+            return await backend_get_services()
+
+        return []
+
     async def scan(self) -> list[DeviceInfo]:
         found = await BleakScanner.discover(timeout=SCAN_TIMEOUT_S, return_adv=True)
         devices: list[DeviceInfo] = []
@@ -35,7 +52,7 @@ class BleService:
     async def discover_gatt(
         self, client: BleakClient
     ) -> tuple[Dict[str, list[CharacteristicInfo]], Dict[int, str], int, int]:
-        services = client.services
+        services = await self._resolve_services(client)
         mapped: Dict[str, list[CharacteristicInfo]] = {}
         key_by_handle: Dict[int, str] = {}
 

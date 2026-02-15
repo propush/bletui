@@ -6,6 +6,7 @@ using mocked BLE client instances without requiring full TUI initialization.
 """
 import pytest
 from unittest.mock import AsyncMock, patch, Mock
+import threading
 from ble_tui.models import CharacteristicInfo
 
 
@@ -411,3 +412,47 @@ async def test_char_target_uses_uuid_if_no_handle():
 
     # Should return UUID
     assert target == "char-uuid"
+
+
+@pytest.mark.integration_ble
+async def test_dispatch_notify_does_not_touch_ui_when_thread_dispatch_fails():
+    """Notification callback fallback must not update UI off the main thread."""
+    from ble_tui import BleTui
+
+    app = BleTui()
+    app._thread_id = threading.get_ident() + 1
+
+    with patch.object(app, "call_from_thread", side_effect=RuntimeError("closed loop")):
+        with patch.object(app, "_append_value") as append_mock:
+            with patch.object(app, "_set_status") as status_mock:
+                with patch.object(app, "_record_error") as error_mock:
+                    app._dispatch_notify("svc:char:1", b"\x01\x02", "char-uuid")
+
+    append_mock.assert_not_called()
+    status_mock.assert_not_called()
+    error_mock.assert_called_once()
+
+
+@pytest.mark.integration_ble
+async def test_dispatch_notify_falls_back_to_direct_calls_on_app_thread():
+    """If callback runs on app thread, fallback should apply updates directly."""
+    from ble_tui import BleTui
+
+    app = BleTui()
+    app._thread_id = threading.get_ident()
+
+    with patch.object(
+        app,
+        "call_from_thread",
+        side_effect=RuntimeError(
+            "The `call_from_thread` method must run in a different thread from the app"
+        ),
+    ):
+        with patch.object(app, "_append_value") as append_mock:
+            with patch.object(app, "_set_status") as status_mock:
+                with patch.object(app, "_record_error") as error_mock:
+                    app._dispatch_notify("svc:char:1", b"\x01\x02", "char-uuid")
+
+    append_mock.assert_called_once_with("svc:char:1", b"\x01\x02")
+    status_mock.assert_called_once_with("Notify char-uuid (2 B)")
+    error_mock.assert_not_called()

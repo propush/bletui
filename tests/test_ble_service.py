@@ -41,3 +41,29 @@ async def test_connect_uses_bleak_client():
 
     assert client is mock_client
     mock_client.connect.assert_called_once()
+
+
+@pytest.mark.unit
+async def test_discover_gatt_falls_back_to_get_services():
+    service = BleService()
+
+    char = Mock()
+    char.uuid = "char-uuid"
+    char.properties = ["read"]
+    char.handle = 42
+
+    svc = Mock()
+    svc.uuid = "svc-uuid"
+    svc.characteristics = [char]
+
+    client = AsyncMock()
+    client.services = None
+    client.get_services = AsyncMock(return_value=[svc])
+
+    mapped, key_by_handle, service_count, char_count = await service.discover_gatt(client)
+
+    client.get_services.assert_called_once()
+    assert "svc-uuid" in mapped
+    assert key_by_handle[42] == "svc-uuid:char-uuid:42"
+    assert service_count == 1
+    assert char_count == 1

@@ -74,7 +74,7 @@ case "$TEST_TYPE" in
         ;;
     cov|coverage)
         echo "Running all tests with coverage..."
-        pytest tests/ --cov=app --cov-report=html --cov-report=term -v $EXTRA_ARGS
+        pytest tests/ --cov=ble_tui --cov-report=html --cov-report=term -v $EXTRA_ARGS
         echo -e "${GREEN}Coverage report generated in htmlcov/index.html${NC}"
         ;;
     all)
