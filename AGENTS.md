@@ -29,6 +29,7 @@ The application is a modular package under `ble_tui/` with a `BleTui` orchestrat
 - **UI framework**: `textual` provides the TUI with four navigable panes (Devices, GATT, Latest Value, History)
 - **Threading model**: BLE notifications use `call_from_thread()` to safely update the UI from callback threads
 - **Latest Value Display**: `VerticalScroll` container wraps the latest value `Static` widget, enabling keyboard scrolling for long characteristic values (JSON, hex)
+- **History Counter**: The history title dynamically displays the entry count for the selected characteristic (e.g., "History (45)"), updates in real-time as data is received, and shows "History (200 - max)" when the buffer is full
 
 ### Package Layout
 
@@ -92,7 +93,7 @@ Errors are logged to `ble_tui_errors.log` with full tracebacks. The app uses non
 
 ## Testing
 
-### Comprehensive Test Suite (94 Tests)
+### Comprehensive Test Suite (100 Tests)
 
 The project has a three-layer testing architecture:
 
@@ -101,8 +102,8 @@ The project has a three-layer testing architecture:
 - Data structure validation: `DeviceInfo`, `CharacteristicInfo`, `LogEntry`
 - Fast, no dependencies, runs in CI
 
-**Integration Tests (38 tests)**
-- `tests/test_integration_tui.py` (22 tests): Textual UI testing with Pilot, including latest value scrolling, tab navigation, and write dialog
+**Integration Tests (44 tests)**
+- `tests/test_integration_tui.py` (28 tests): Textual UI testing with Pilot, including latest value scrolling, tab navigation, write dialog, and history count display
 - `tests/test_integration_ble.py` (16 tests): BLE operations with mocked client
 - Medium speed, mocked BLE, runs in CI
 
@@ -180,6 +181,7 @@ When modifying this codebase:
 - UI updates from BLE callbacks must use `call_from_thread()`
 - Textual's widget tree is: Header → Grid (4 navigable panes) → Status → Footer
 - Latest value widget is wrapped in `VerticalScroll` container for keyboard scrolling
+- History title widget (`#history_title`) dynamically displays entry count via `_render_history_title()`
 - Characteristic keys are composite: `{service_uuid}:{char_uuid}:{handle}`
 - The app auto-scans on startup in `on_mount()`
 - The documentation should be updated with new features and changes

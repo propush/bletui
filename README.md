@@ -4,7 +4,7 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
-![Tests](https://img.shields.io/badge/tests-94%20fast%20passed-green)
+![Tests](https://img.shields.io/badge/tests-100%20fast%20passed-green)
 ![Coverage](https://img.shields.io/badge/coverage-85%2B%25-green)
 
 ## Features
@@ -17,8 +17,9 @@ A Python Terminal User Interface (TUI) application for scanning, connecting to, 
 - 🔔 **Notifications** - Subscribe to characteristic notifications in real-time
 - 📊 **Dual Display** - View values in both hex and JSON formats with syntax highlighting
 - 📜 **Scrollable Latest Value** - Keyboard scrolling for long characteristic values (arrow keys, page up/down, home/end)
+- 📈 **History Counter** - Live entry count display in history title (e.g., "History (45)"), shows max indicator at 200 entries
 - ⌨️ **Keyboard Navigation** - Full keyboard control with intuitive shortcuts and 4-pane tab navigation
-- ✅ **Comprehensive Testing** - 94 tests with 85%+ coverage
+- ✅ **Comprehensive Testing** - 100 tests with 85%+ coverage
 
 ## Screenshots
 
@@ -90,10 +91,10 @@ python3 -m ble_tui
 
 ### Test Suite Overview
 
-The project includes **94 comprehensive tests** across three layers:
+The project includes **100 comprehensive tests** across three layers:
 
 - **48 Unit Tests** - Fast, isolated tests for pure functions, models, services, and renderers
-- **38 Integration Tests** - TUI and BLE operation tests with mocked dependencies, including write dialog and latest value scrolling
+- **44 Integration Tests** - TUI and BLE operation tests with mocked dependencies, including write dialog, latest value scrolling, and history count display
 - **8 E2E Tests** - Full workflow tests against real BLE hardware
 
 ### Running Tests
@@ -118,7 +119,7 @@ open htmlcov/index.html
 ### Test Results (Fast Suite)
 
 ```
-==================== 94 passed, 8 deselected in 99.82s ========================
+==================== 100 passed, 8 deselected in 101.00s ========================
 ✓ Tests passed!
 ```
 

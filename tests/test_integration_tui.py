@@ -358,6 +358,87 @@ async def test_history_title_widget_exists():
 
 
 @pytest.mark.integration_tui
+async def test_history_title_shows_entry_count():
+    """Test that history title dynamically shows entry count."""
+    async with BleTui().run_test() as pilot:
+        app = pilot.app
+        from textual.widgets import Static
+        from ble_tui.models import CharacteristicInfo
+
+        await pilot.pause()
+
+        # Get the title widget
+        title_widget = app.query_one("#history_title", Static)
+
+        # Create mock characteristic
+        char = Mock()
+        char.handle = 42
+
+        info = CharacteristicInfo(
+            key="test-svc:test-char:42",
+            uuid="test-char",
+            properties=("read", "notify"),
+            service_uuid="test-svc",
+            char=char,
+        )
+
+        # Set up GATT service
+        app._state.services = {"test-svc": [info]}
+        key = "test-svc:test-char:42"
+
+        # Select characteristic with no data - should show "History (0)"
+        app._selected_char = key
+        app._render_log(key)
+        await pilot.pause()
+
+        rendered = title_widget.render()
+        assert "History (0)" in str(rendered)
+
+        # Add one entry - should show "History (1)"
+        app._state.append_value(key, b"data1")
+        app._render_log(key)
+        await pilot.pause()
+
+        rendered = title_widget.render()
+        assert "History (1)" in str(rendered)
+
+        # Add more entries - should show "History (3)"
+        app._state.append_value(key, b"data2")
+        app._state.append_value(key, b"data3")
+        app._render_log(key)
+        await pilot.pause()
+
+        rendered = title_widget.render()
+        assert "History (3)" in str(rendered)
+
+        # Fill to max capacity (200 entries)
+        for i in range(197):  # Already have 3 entries
+            app._state.append_value(key, f"data{i}".encode())
+        app._render_log(key)
+        await pilot.pause()
+
+        # Should show "History (200 - max)"
+        rendered = title_widget.render()
+        assert "History (200 - max)" in str(rendered)
+
+        # Clear log - should show "History (0)"
+        app._state.clear_char_log(key)
+        app._render_log(key)
+        await pilot.pause()
+
+        rendered = title_widget.render()
+        assert "History (0)" in str(rendered)
+
+        # Disconnect/clear GATT - should reset to "History"
+        app._selected_char = None  # Clear selection (done by disconnect_internal)
+        app._clear_gatt_ui()
+        await pilot.pause()
+
+        rendered = title_widget.render()
+        assert str(rendered) == "History"
+
+
+@pytest.mark.integration_tui
 async def test_latest_value_empty_state():
     """Test placeholder message when no data received."""
     async with BleTui().run_test() as pilot:

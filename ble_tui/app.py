@@ -23,7 +23,7 @@ from ble_tui.ui.renderers import (
 )
 from ble_tui.ui.styles import APP_CSS
 from ble_tui.ui.write_dialog import WriteDialog
-from ble_tui.utils import ERROR_LOG_PATH, format_ble_error
+from ble_tui.utils import ERROR_LOG_PATH, format_ble_error, LOG_MAX
 
 
 class BleTui(App):
@@ -71,7 +71,7 @@ class BleTui(App):
                 yield Static("No characteristic selected", id="log_meta")
                 with VerticalScroll(id="latest_value_scroll", classes="latest-value"):
                     yield Static("", id="latest_value")
-                yield Static("History", classes="history-title")
+                yield Static("History", id="history_title", classes="history-title")
                 yield RichLog(id="log", wrap=True)
         yield Static("Ready", id="status")
         yield Footer()
@@ -98,6 +98,24 @@ class BleTui(App):
             subscribed_count=len(self._state.subscribed),
         )
         self.query_one("#status", Static).update(line)
+
+    def _render_history_title(self, key: Optional[str] = None) -> None:
+        """Update history title with entry count for selected characteristic."""
+        if key is None:
+            key = self._selected_char
+
+        if key is None:
+            # No characteristic selected
+            title = "History"
+        else:
+            logs = self._state.logs.get(key, [])
+            count = len(logs)
+            if count >= LOG_MAX:
+                title = f"History ({count} - max)"
+            else:
+                title = f"History ({count})"
+
+        self.query_one("#history_title", Static).update(title)
 
     def _record_error(self, context: str, exc: Exception) -> None:
         ts = datetime.now().isoformat(timespec="seconds")
@@ -219,6 +237,7 @@ class BleTui(App):
         self.query_one("#log_meta", Static).update("No characteristic selected")
         self.query_one("#latest_value", Static).update("")
         self.query_one("#log", RichLog).clear()
+        self._render_history_title(None)  # Reset to "History"
         self._render_devices_table(preserve_addr=self._selected_device)
         self._render_status()
 
@@ -454,6 +473,9 @@ class BleTui(App):
     def _render_log(self, key: str) -> None:
         log_view = self.query_one("#log", RichLog)
         log_view.clear()
+
+        # Update history title with count
+        self._render_history_title(key)
 
         info = self._state.find_char(key)
         self.query_one("#log_meta", Static).update(log_meta(info))
